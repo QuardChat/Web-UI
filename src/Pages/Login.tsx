@@ -1,21 +1,38 @@
-import {Avatar, Box, Button, Grid, Input, InputAdornment, Paper, TextField} from "@mui/material";
-import * as Icons from "@mui/icons-material"
+import {Box, Button, Grid, Paper} from "@mui/material";
 import {signal} from "@preact/signals-react";
 import "../../public/styles.sass"
+import LoginComponent from "./Login/LoginComponent.tsx";
+import {api} from "../Utils/api.ts";
 
-function handleLogin() {
+const email = signal("")
 
+async function handleLogin() {
+	const username = (document.getElementById('username') as HTMLInputElement)?.value || '';
+	const password = (document.getElementById('password') as HTMLInputElement)?.value || '';
+	if (!(username != "" && password != "")) return "Empty username or password"
+	try {
+		api.post("/accounts/login", {
+			"username": username, "password": password
+		}).then((res) => {
+			localStorage.setItem("token", res.data.token)
+		})
+			.catch((e) => {
+				console.log(e.response.status)
+			})
+	} catch (error) {
+		console.error('Error logging in:', error);
+		//setError('Invalid response data');
+	}
 }
 
 function handleRegister() {
 
 }
 
-function Login() {
-	const email = signal("")
-	const username = signal("")
-	const password = signal("")
+const register = signal(false)
 
+function Login() {
+	if (localStorage.getItem("token")) location.href = location.href.replace("login", "")
 	return <Box>
 		<Paper className='login' sx={{
 			position: 'fixed',
@@ -27,22 +44,9 @@ function Login() {
 
 		}}>
 			<Grid container justifyContent="center">
-				<Avatar></Avatar>
-				<Grid container>
-					<TextField InputProps={{
-						startAdornment: <InputAdornment position="start"><Icons.Email/></InputAdornment>,
-					}} fullWidth onChange={(e) => email.value = e.target.value} label="Email" variant="standard" />
-					<TextField InputProps={{
-						startAdornment: <InputAdornment position="start"><Icons.Person/></InputAdornment>,
-					}} fullWidth onChange={(e) => username.value = e.target.value} label="Username" variant="standard" />
-					<TextField InputProps={{
-						startAdornment: <InputAdornment position="start"><Icons.Key/></InputAdornment>,
-					}} fullWidth onChange={(e) => password.value = e.target.value} label="Password" variant="standard" />
-				</Grid>
-				<Button sx={{marginTop: 2}} onClick={() => handleLogin()} fullWidth variant='outlined'>Login</Button>
-				<Button sx={{marginTop: 2}} onClick={() => handleRegister()} fullWidth variant='outlined'>Register</Button>
+				{LoginComponent()}
+				<Button sx={{marginTop: 2}} onClick={handleLogin} fullWidth variant='outlined'>Login</Button>
 			</Grid>
-
 		</Paper>
 	</Box>
 }

@@ -1,7 +1,8 @@
 export interface User {
-	username: string;
+	ID: number;
+	USERNAME: string;
 	avatarURL: string;
-	isStaff: boolean;
+	isStaff: boolean
 }
 
 export interface Message {

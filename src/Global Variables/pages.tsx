@@ -5,11 +5,11 @@ import Users from "../Pages/Users.tsx";
 import Login from "../Pages/Login.tsx";
 
 export const pages: Page[] = [{
-	node: <Messages/>, icon: <Icons.Message/>, link: "messages", label: "Messages",
+	node: <Messages/>, icon: <Icons.Message/>, link: "messages", label: "Messages", enabled: true,
 }, {
-	node: <Users/>, icon: <Icons.AccountTree/>, link: "users", label: "Users",
+	node: <Users/>, icon: <Icons.AccountTree/>, link: "users", label: "Users", enabled: true,
 }, {
-	node: <Login/>, icon: <Icons.Login/>, link: "login", label: "Login",
+	node: <Login/>, icon: <Icons.Login/>, link: "login", label: "Login", enabled: !localStorage.getItem("token"),
 }];
 
 interface Page {
@@ -17,4 +17,5 @@ interface Page {
 	label: string;
 	link: string;
 	node: ReactElement;
+	enabled: boolean
 }

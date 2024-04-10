@@ -2,61 +2,65 @@ import {Avatar, Button, Grid, Paper, TextField, Typography} from '@mui/material'
 import {signal} from '@preact/signals-react';
 import {api} from "../Utils/api.ts";
 import {useEffect} from "react";
-import SecurityIcon from '@mui/icons-material/Security';
-import {Message} from '../Utils/types.ts';
-
-
-const username = signal(localStorage.getItem("username") || "Guest");
-const avatarUrl = signal(localStorage.getItem("avatarUrl") || "")
-
+import {Message, User} from '../Utils/types.ts';
+import {Signal} from "@preact/signals";
+import * as Icons from "@mui/icons-material"
 
 function sendMessage(message: string) {
-	api.post("postMessage", {
-		"user": {
-			"userId": username, "avatarUrl": avatarUrl
-		}, "message": message, "time": Date.now()
+	api.post("/messages", {
+		"token": localStorage.getItem("token"), message: message, time: Date.now(),
+	}).catch((e) => {
+		console.log(e.response.status)
 	})
 }
 
-//""
-function getMessages(messages: Message[]) {
-	return messages.map((message: Message) => (<Grid key={`${message.message}${message.time}${message.user.userId}`}
-	>
-		<Paper sx={{padding: 2, marginBottom: 2}}>
-			<Grid container spacing={2} alignItems="center">
-				<Grid item>
-					<Avatar alt={message.user.userId} src={message.user.avatarUrl}/>
-				</Grid>
-				<Grid item xs>
-					<Grid container alignItems="center" spacing={1}>
-						{message.user.isStaff && (<Grid item>
-							<SecurityIcon fontSize="small"/>
-						</Grid>)}
+async function getMessages() {
+	return await api.get("/messages/").then(async (data) => {
+		const messages: Message[] = data.data;
+		return await Promise.all(messages.map(async (message: Message) => {
+			const userData: User = (await api.post("accounts/getAccountInfo", {ID: message.user.ID})).data;
+			// @ts-ignore
+			return (<Grid key={`${message.message}${message.time}${userData.USERNAME}`}>
+				<Paper sx={{padding: 2, marginBottom: 2}}>
+					<Grid container spacing={2} alignItems="center">
 						<Grid item>
-							<Typography variant="subtitle1" fontWeight="bold">
-								{message.user.userId}
-							</Typography>
+							<Avatar alt={userData.USERNAME} src={userData.avatarURL}/>
 						</Grid>
-						<Grid item>
-							<Typography variant="caption" color="textSecondary">
-								{new Date(message.time).toLocaleString()}
-							</Typography>
+						<Grid item xs>
+							<Grid container alignItems="center" spacing={1}>
+								{!!userData.isStaff && (<Grid item>
+									<Icons.Security fontSize="small"/>
+								</Grid>)}
+								<Grid item>
+									<Typography variant="subtitle1" fontWeight="bold">
+										{userData.USERNAME}
+									</Typography>
+								</Grid>
+								<Grid item>
+									<Typography variant="caption" color="textSecondary">
+										{new Date(message.time).toLocaleString()}
+									</Typography>
+								</Grid>
+							</Grid>
+							<Typography variant="body1">{message.message}</Typography>
+							<Button variant="outlined" onClick={() => api.delete("/messages/", {
+								headers: {
+									Authorization: `Bearer ${token}`,
+								}
+							})}>Delete</Button>
 						</Grid>
 					</Grid>
-					<Typography variant="body1">{message.message}</Typography>
-					<Button variant="outlined" onClick={() => api.post("deleteMessage", message)}>Delete</Button>
-				</Grid>
-			</Grid></Paper>
-	</Grid>))
+				</Paper>
+			</Grid>);
+		}));
+	});
 }
 
 function Messages() {
-	const messages = signal([]);
+	const messages: Signal<unknown[]> = signal([]);
 	useEffect(() => {
 		const getMessagesAsync = async () => {
-			const data = await api.get("getMessages")
-			// @ts-ignore
-			messages.value = getMessages(data.data)
+			messages.value = await getMessages()
 		};
 
 		const interval = setInterval(getMessagesAsync, 1000);
@@ -64,8 +68,8 @@ function Messages() {
 		return () => {
 			clearInterval(interval)
 		};
-	}, [])
-
+	}, [messages])
+	console.log(messages)
 	return <Grid container spacing={2}>
 		<Grid item xs={12}>
 			{messages}
